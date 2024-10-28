@@ -10,7 +10,7 @@ const model = ref([
     },
 	{
 		label: 'Pedidos',
-		items: [{ label: 'pedidos', icon: ' pi-address-book', to: '/pedidos' }],
+		items: [{ label: 'pedidos', icon: 'pi pi-address-book', to: '/pedidos' }],
 	}
 
     /*{

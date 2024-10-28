@@ -4,10 +4,11 @@ import {onMounted, ref, computed, nextTick} from "vue";
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import servicesMenu from "@/services/menu.service.js";
+import servicesPedido from "@/services/pedido.service.js";
 
 const userDialog = ref(false);
 const menus = ref({});
-const menu = ref([]);
+const menu = ref({});
 
 // Pedidos
 const pedido = ref({
@@ -68,10 +69,42 @@ const totalAPagar = computed(() => {
 });
 
 // Función para realizar el pedido
-const realizarPedido = () => {
-    console.log('Realizando pedido:', pedidos.value);
-	userDialog.value = true;
-	// mostrarModal.value = true;
+const realizarPedido = async () => {
+    // Recuperar datos del localStorage
+    const datos = localStorage.getItem('user');
+    const user = datos ? JSON.parse(datos) : null;
+
+    // if (user) {
+    //     const clienteid = user.data.id; // Asegúrate de que el ID del cliente esté disponible
+    //     console.log('Cliente ID:', clienteid); // Para verificar que se está recuperando correctamente
+    // } else {
+    //     console.error('No se encontró el usuario en localStorage'); // Manejo de error
+    //     return; // Salir si no hay usuario
+    // }
+
+    try {
+        // Agregar subtotal a cada pedido
+        const pedidosConSubtotal = pedidos.value.map(pedido => ({
+            ...pedido,
+            total: (pedido.Precio * pedido.Cantidad).toFixed(2) // Calcula el subtotal y lo formatea
+        }));
+
+        const pedidoData = {
+            cliente_id: user.data.id, // Usar el cliente ID recuperado
+            pedidos: pedidosConSubtotal, // Usar el array de pedidos con subtotal
+            TotalPagar: totalAPagar.value,
+        };
+        //console.log(pedidoData);
+        // Llamar al servicio para enviar el pedido al servidor
+        const response = await servicesPedido.guardar(pedidoData);
+        //console.log(response);
+
+
+    } catch (error) {
+        console.error('Error al realizar el pedido:', error);
+    }
+    
+    userDialog.value = true;
 };
 
 const confirmarPago = () => {
@@ -100,12 +133,13 @@ async function getListar() {
 		const { data } = await servicesMenu.listar();
 		// menus.value = data;
 		menus.value = data.map(item => ({
+            id: item.id,
 			Nombre: item.Nombre,
 			image: "http://localhost:8000/"+item.FotoMenu, // Asume que el servidor devuelve una URL de imagen
 			Precio: item.Precio,
 			Descripcion: item.Descripcion
 		}));
-		console.log(menus.value);
+		//console.log(menus.value);
 	} catch (error) {
 		console.error("Error al cargar el menú:", error);
 	}
@@ -187,6 +221,14 @@ const generarYDescargarPDF = async () => {
     }
 };
 
+// Agregar esta propiedad computada
+const subtotalPorPedido = computed(() => {
+    return pedidos.value.map(pedido => ({
+        ...pedido,
+        total: (pedido.Precio * pedido.Cantidad).toFixed(2) // Calcula el subtotal y lo formatea
+    }));
+});
+
 </script>
 
 <template>
@@ -202,11 +244,11 @@ const generarYDescargarPDF = async () => {
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="pedido in pedidos" :key="pedido.id">
-                    <td>{{ pedido.Nombre }}</td>
-                    <td>{{ pedido.Cantidad }}</td>
-                    <td>{{ pedido.Precio }}</td>
-                    <td>{{ pedido.Precio * pedido.Cantidad }}</td>
+                <tr v-for="pedido in subtotalPorPedido" :key="pedido.id">
+                    <td class="px-4 py-2">{{ pedido.Nombre }}</td>
+                    <td class="px-4 py-2">{{ pedido.Cantidad }}</td>
+                    <td class="px-4 py-2">{{ pedido.Precio }}</td>
+                    <td class="px-4 py-2">{{ pedido.total }}</td> <!-- Usar la propiedad computada -->
                 </tr>
             </tbody>
         </table>
@@ -281,8 +323,8 @@ const generarYDescargarPDF = async () => {
                     <tr>
                         <th class="px-4 py-2 text-left">Nº</th>
                         <th class="px-4 py-2 text-left">Descripcion</th>
-                        <th class="px-4 py-2 text-left">Total</th>
                         <th class="px-4 py-2 text-left">Cantidad</th>
+                        <th class="px-4 py-2 text-left">SubTotal</th>
                         <th class="px-4 py-2"></th>
                     </tr>
                 </thead>
@@ -345,3 +387,6 @@ const generarYDescargarPDF = async () => {
     top: -9999px;
 }
 </style>
+
+
+

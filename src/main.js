@@ -6,15 +6,16 @@ import Aura from '@primevue/themes/aura';
 import PrimeVue from 'primevue/config';
 import ConfirmationService from 'primevue/confirmationservice';
 import ToastService from 'primevue/toastservice';
+import { createPinia } from 'pinia'
 // import StyleClass from 'primevue/styleclass'
 
 import '@/assets/styles.scss';
 import '@/assets/tailwind.css';
 
 const app = createApp(App)
+app.use(createPinia())
 
 app.use(router)
-
 app.use(PrimeVue, {
     theme: {
         preset: Aura,
